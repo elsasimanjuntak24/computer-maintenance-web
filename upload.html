@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Data Barang</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .box { border: 1px solid #ccc; padding: 20px; max-width: 600px; margin: auto; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Upload Data Barang (Excel)</h2>
+        <input type="file" id="uploadExcel" accept=".xlsx, .xls">
+        <p><small>Pastikan file memiliki kolom: Kode Asset, Ruangan, Nama Alat, Keterangan, Spesifikasi</small></p>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadExcel').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet);
+
+                // Transformasi ke format kita
+                const barangData = json.map(row => ({
+                    id: row["Kode Asset"],
+                    ruangan: row["Ruangan"],
+                    nama_barang: row["Nama Alat"],
+                    keterangan: row["Keterangan"],
+                    spesifikasi: row["Spesifikasi"]
+                }));
+
+                // Simpan ke localStorage
+                localStorage.setItem("barangData", JSON.stringify(barangData));
+                document.getElementById("status").innerHTML = `<p style="color:green;">✅ Berhasil menyimpan ${barangData.length} data ke localStorage.</p>`;
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
