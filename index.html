@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Barcode Maintenance Barang</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Scan Barcode Maintenance Barang</h1>
+        
+        <div class="scan-section">
+            <h2>Scan atau Input Kode Barang</h2>
+            
+            <!-- Kamera Section -->
+            <div class="camera-section">
+                <video id="video" width="300" height="200" style="border: 1px solid #ccc;"></video>
+                <br>
+                <button id="startCamera" class="btn btn-primary">Start Camera</button>
+                <button id="stopCamera" class="btn btn-secondary">Stop Camera</button>
+            </div>
+            
+            <!-- Manual Input Section -->
+            <div class="manual-input">
+                <h3>Atau Input Manual:</h3>
+                <input type="text" id="barcodeInput" placeholder="Masukkan kode barang" class="input-field">
+                <button id="scanButton" class="btn btn-success">Scan</button>
+            </div>
+            
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data dummy barang
+        const barangData = [
+            { id: "BR001", nama_barang: "Laptop Dell Inspiron" },
+            { id: "BR002", nama_barang: "Mouse Wireless Logitech" },
+            { id: "BR003", nama_barang: "Keyboard Mechanical" },
+            { id: "BR004", nama_barang: "Monitor LG 24 inch" },
+            { id: "BR005", nama_barang: "Printer Canon" },
+            { id: "BR006", nama_barang: "Router TP-Link" },
+            { id: "BR007", nama_barang: "Webcam HD" },
+            { id: "BR008", nama_barang: "Speaker Bluetooth" },
+            { id: "BR009", nama_barang: "Hard Drive External 1TB" },
+            { id: "BR010", nama_barang: "Tablet Samsung" }
+        ];
+
+        // Simpan data barang ke localStorage
+        if (!localStorage.getItem('barangData')) {
+            localStorage.setItem('barangData', JSON.stringify(barangData));
+        }
+
+        // Simpan data maintenance ke localStorage jika belum ada
+        if (!localStorage.getItem('maintenanceData')) {
+            localStorage.setItem('maintenanceData', JSON.stringify([]));
+        }
+
+        let video = document.getElementById('video');
+        let stream = null;
+
+        // Start camera function
+        document.getElementById('startCamera').addEventListener('click', async function() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+                document.getElementById('result').innerHTML = '<p style="color: green;">Kamera aktif. Arahkan ke barcode untuk scan otomatis.</p>';
+                
+                // Simulasi scan otomatis setelah 3 detik (untuk demo)
+                setTimeout(() => {
+                    const randomBarcode = barangData[Math.floor(Math.random() * barangData.length)].id;
+                    processBarcode(randomBarcode);
+                }, 3000);
+                
+            } catch (err) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">Error: Tidak dapat mengakses kamera. ' + err.message + '</p>';
+            }
+        });
+
+        // Stop camera function
+        document.getElementById('stopCamera').addEventListener('click', function() {
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+                document.getElementById('result').innerHTML = '<p>Kamera dimatikan.</p>';
+            }
+        });
+
+        // Manual scan function
+        document.getElementById('scanButton').addEventListener('click', function() {
+            const barcode = document.getElementById('barcodeInput').value.trim();
+            if (barcode) {
+                processBarcode(barcode);
+            } else {
+                document.getElementById('result').innerHTML = '<p style="color: red;">Silakan masukkan kode barang!</p>';
+            }
+        });
+
+        // Process barcode function
+        function processBarcode(barcode) {
+            const storedBarangData = JSON.parse(localStorage.getItem('barangData'));
+            const barang = storedBarangData.find(item => item.id === barcode);
+            
+            if (barang) {
+                // Simpan barang yang dipilih ke localStorage
+                localStorage.setItem('selectedBarang', JSON.stringify(barang));
+                
+                document.getElementById('result').innerHTML = `
+                    <div style="color: green;">
+                        <h3>Barang Ditemukan!</h3>
+                        <p><strong>ID:</strong> ${barang.id}</p>
+                        <p><strong>Nama:</strong> ${barang.nama_barang}</p>
+                        <button onclick="goToDetail()" class="btn btn-primary">Lihat Detail & Maintenance</button>
+                    </div>
+                `;
+            } else {
+                document.getElementById('result').innerHTML = `
+                    <div style="color: red;">
+                        <h3>Barang Tidak Ditemukan!</h3>
+                        <p>Kode barang: ${barcode}</p>
+                        <p>Silakan coba kode lain atau hubungi admin.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Go to detail page
+        function goToDetail() {
+            window.location.href = 'detail.html';
+        }
+
+        // Allow Enter key on input
+        document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('scanButton').click();
+            }
+        });
+    </script>
+</body>
+</html>

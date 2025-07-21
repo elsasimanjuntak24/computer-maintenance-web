@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Barang & Maintenance</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <button onclick="goBack()" class="btn btn-secondary">← Kembali ke Scan</button>
+        
+        <div id="barangDetail" class="barang-detail">
+            <!-- Detail barang akan dimuat di sini -->
+        </div>
+        
+        <div class="maintenance-section">
+            <h2>Data Maintenance</h2>
+            
+            <!-- Form tambah maintenance -->
+            <div class="form-section">
+                <h3>Tambah Data Maintenance</h3>
+                <form id="maintenanceForm">
+                    <div class="form-group">
+                        <label for="tanggal">Tanggal:</label>
+                        <input type="date" id="tanggal" required class="input-field">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="namaStaff">Nama Staff:</label>
+                        <input type="text" id="namaStaff" required class="input-field" placeholder="Nama staff yang melakukan maintenance">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="keterangan">Keterangan:</label>
+                        <textarea id="keterangan" required class="input-field" placeholder="Keterangan maintenance yang dilakukan"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="kondisi">Kondisi Barang:</label>
+                        <select id="kondisi" required class="input-field">
+                            <option value="">Pilih kondisi</option>
+                            <option value="Normal">Normal</option>
+                            <option value="Rusak">Rusak</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Simpan Maintenance</button>
+                </form>
+            </div>
+            
+            <!-- Tabel data maintenance -->
+            <div class="table-section">
+                <h3>Riwayat Maintenance</h3>
+                <div id="maintenanceTable">
+                    <!-- Tabel akan dimuat di sini -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h3>Edit Data Maintenance</h3>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editTanggal">Tanggal:</label>
+                    <input type="date" id="editTanggal" required class="input-field">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editNamaStaff">Nama Staff:</label>
+                    <input type="text" id="editNamaStaff" required class="input-field">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editKeterangan">Keterangan:</label>
+                    <textarea id="editKeterangan" required class="input-field"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editKondisi">Kondisi Barang:</label>
+                    <select id="editKondisi" required class="input-field">
+                        <option value="Normal">Normal</option>
+                        <option value="Rusak">Rusak</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-success">Update</button>
+                <button type="button" onclick="closeEditModal()" class="btn btn-secondary">Batal</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let selectedBarang = JSON.parse(localStorage.getItem('selectedBarang'));
+        let maintenanceData = JSON.parse(localStorage.getItem('maintenanceData')) || [];
+
+        // Load halaman
+        window.onload = function() {
+            if (!selectedBarang) {
+                alert('Tidak ada barang yang dipilih!');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            loadBarangDetail();
+            loadMaintenanceTable();
+            
+            // Set tanggal hari ini sebagai default
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+        };
+
+        // Load detail barang
+        function loadBarangDetail() {
+            document.getElementById('barangDetail').innerHTML = `
+                <h1>Detail Barang</h1>
+                <div class="detail-card">
+                    <h2>${selectedBarang.nama_barang}</h2>
+                    <p><strong>ID Barang:</strong> ${selectedBarang.id}</p>
+                    <p><strong>Status:</strong> <span id="statusBarang">-</span></p>
+                </div>
+            `;
+            
+            updateStatusBarang();
+        }
+
+        // Update status barang berdasarkan maintenance terakhir
+        function updateStatusBarang() {
+            const barangMaintenance = maintenanceData.filter(m => m.barangId === selectedBarang.id);
+            if (barangMaintenance.length > 0) {
+                const lastMaintenance = barangMaintenance[barangMaintenance.length - 1];
+                const statusElement = document.getElementById('statusBarang');
+                statusElement.textContent = lastMaintenance.kondisi;
+                statusElement.className = lastMaintenance.kondisi === 'Normal' ? 'status-normal' : 'status-rusak';
+            }
+        }
+
+        // Load tabel maintenance
+        function loadMaintenanceTable() {
+            const barangMaintenance = maintenanceData.filter(m => m.barangId === selectedBarang.id);
+            
+            if (barangMaintenance.length === 0) {
+                document.getElementById('maintenanceTable').innerHTML = '<p>Belum ada data maintenance untuk barang ini.</p>';
+                return;
+            }
+            
+            let tableHTML = `
+                <table class="maintenance-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Staff</th>
+                            <th>Keterangan</th>
+                            <th>Kondisi</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            barangMaintenance.forEach(maintenance => {
+                tableHTML += `
+                    <tr>
+                        <td>${maintenance.tanggal}</td>
+                        <td>${maintenance.namaStaff}</td>
+                        <td>${maintenance.keterangan}</td>
+                        <td><span class="${maintenance.kondisi === 'Normal' ? 'status-normal' : 'status-rusak'}">${maintenance.kondisi}</span></td>
+                        <td>
+                            <button onclick="editMaintenance('${maintenance.id}')" class="btn btn-small btn-warning">Edit</button>
+                            <button onclick="deleteMaintenance('${maintenance.id}')" class="btn btn-small btn-danger">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            document.getElementById('maintenanceTable').innerHTML = tableHTML;
+        }
+
+        // Form submit handler
+        document.getElementById('maintenanceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newMaintenance = {
+                id: Date.now().toString(),
+                barangId: selectedBarang.id,
+                tanggal: document.getElementById('tanggal').value,
+                namaStaff: document.getElementById('namaStaff').value,
+                keterangan: document.getElementById('keterangan').value,
+                kondisi: document.getElementById('kondisi').value
+            };
+            
+            maintenanceData.push(newMaintenance);
+            localStorage.setItem('maintenanceData', JSON.stringify(maintenanceData));
+            
+            // Reset form
+            document.getElementById('maintenanceForm').reset();
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+            
+            // Refresh tabel
+            loadMaintenanceTable();
+            updateStatusBarang();
+            
+            alert('Data maintenance berhasil disimpan!');
+        });
+
+        // Edit maintenance
+        function editMaintenance(id) {
+            const maintenance = maintenanceData.find(m => m.id === id);
+            if (maintenance) {
+                document.getElementById('editId').value = maintenance.id;
+                document.getElementById('editTanggal').value = maintenance.tanggal;
+                document.getElementById('editNamaStaff').value = maintenance.namaStaff;
+                document.getElementById('editKeterangan').value = maintenance.keterangan;
+                document.getElementById('editKondisi').value = maintenance.kondisi;
+                
+                document.getElementById('editModal').style.display = 'block';
+            }
+        }
+
+        // Edit form submit
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('editId').value;
+            const index = maintenanceData.findIndex(m => m.id === id);
+            
+            if (index !== -1) {
+                maintenanceData[index] = {
+                    id: id,
+                    barangId: selectedBarang.id,
+                    tanggal: document.getElementById('editTanggal').value,
+                    namaStaff: document.getElementById('editNamaStaff').value,
+                    keterangan: document.getElementById('editKeterangan').value,
+                    kondisi: document.getElementById('editKondisi').value
+                };
+                
+                localStorage.setItem('maintenanceData', JSON.stringify(maintenanceData));
+                loadMaintenanceTable();
+                updateStatusBarang();
+                closeEditModal();
+                
+                alert('Data maintenance berhasil diupdate!');
+            }
+        });
+
+        // Delete maintenance
+        function deleteMaintenance(id) {
+            if (confirm('Yakin ingin menghapus data maintenance ini?')) {
+                maintenanceData = maintenanceData.filter(m => m.id !== id);
+                localStorage.setItem('maintenanceData', JSON.stringify(maintenanceData));
+                loadMaintenanceTable();
+                updateStatusBarang();
+                
+                alert('Data maintenance berhasil dihapus!');
+            }
+        }
+
+        // Modal functions
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        // Back to scan page
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
